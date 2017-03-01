@@ -1,0 +1,289 @@
+Sub mitglieder()
+
+Dim n As Long
+Dim gmaxanzahl As Long
+Dim AD_AH As Long
+Dim speicherOrt As String
+Dim var As Long
+Dim var2 As Long
+
+var2 = Worksheets("Mitgliederliste").UsedRange.Rows.Count - 2
+AD_AH = 0
+var = var2
+
+For x = 2 To var2
+
+    If Worksheets("Mitgliederliste").Cells(x, 1) = "" And Worksheets("Mitgliederliste").Cells(x + 1, 1) = "" Then
+    
+        Worksheets("Mitgliederliste").Rows(x + 1).Delete
+        x = x - 1
+        var = var - 1
+    
+    ElseIf Worksheets("Mitgliederliste").Cells(x, 1) = "" And (Worksheets("Mitgliederliste").Cells(x + 1, 1) <> "Aktive" And Worksheets("Mitgliederliste").Cells(x + 1, 1) <> "Probemitglieder" _
+    And Worksheets("Mitgliederliste").Cells(x + 1, 1) <> "AD/AH/Inaktive") Then
+    
+        Worksheets("Mitgliederliste").Rows(x).Delete
+        var = var - 1
+    
+    End If
+    
+    If x = var Then x = var2
+    
+Next x
+
+gmaxanzahl = Worksheets("Mitgliederliste").UsedRange.Rows.Count - 2
+speicherOrt = Application.ActiveWorkbook.Path
+
+ThisWorkbook.SaveAs Filename:=speicherOrt & "\" & Format(Now, "yyyy_mm_dd") & "_Bierkassenabrechnung.xlsm"
+
+Worksheets("Verzehrliste").Range(Worksheets("Verzehrliste").Cells(7, 1), Worksheets("Verzehrliste").Cells(Worksheets("Verzehrliste").UsedRange.Rows.Count, 2)).Clear
+Worksheets("Draußen").Range(Worksheets("Draußen").Cells(3, 1), Worksheets("Draußen").Cells(Worksheets("Draußen").UsedRange.Rows.Count, 2)).Clear
+Worksheets("Gemeinsames Essen | Grillen").Range(Worksheets("Gemeinsames Essen | Grillen").Cells(4, 1), Worksheets("Gemeinsames Essen | Grillen").Cells(Worksheets("Gemeinsames Essen | Grillen").UsedRange.Rows.Count, 1)).Clear
+'Worksheets("Druckvers. Gemeinsames Essen").Range(Worksheets("Druckvers. Gemeinsames Essen").Cells(4, 1), Worksheets("Druckvers. Gemeinsames Essen").Cells(Worksheets("Druckvers. Gemeinsames Essen").UsedRange.Rows.Count, 2)).Clear
+Worksheets("Bierkassenabrechnung").Range(Worksheets("Bierkassenabrechnung").Cells(3, 1), Worksheets("Bierkassenabrechnung").Cells(Worksheets("Bierkassenabrechnung").UsedRange.Rows.Count, 2)).Clear
+
+For n = 2 To gmaxanzahl
+
+    '** Vor- und Nachname kopieren, außer bei den Gruppennamen, AD/AHs und leeren Zeilen
+    If Worksheets("Mitgliederliste").Cells(n, 1) = "" Or Worksheets("Mitgliederliste").Cells(n, 1) = "Aktive" Or _
+        Worksheets("Mitgliederliste").Cells(n, 1) = "Probemitglieder" Or Worksheets("Mitgliederliste").Cells(n, 1) = "AD/AH/Inaktive" Or _
+        Worksheets("Mitgliederliste").Cells(n, 2) = "" Then
+
+            Worksheets("Gemeinsames Essen | Grillen").Cells(n + 2, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+            Worksheets("Verzehrliste").Cells(n + 5, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+            Worksheets("Draußen").Cells(n + 1, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+            Worksheets("Bierkassenabrechnung").Cells(n + 1, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+
+    Else
+    Worksheets("Verzehrliste").Cells(n + 5, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+    Worksheets("Verzehrliste").Cells(n + 5, 2) = Worksheets("Mitgliederliste").Cells(n, 2)
+    Worksheets("Draußen").Cells(n + 1, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+    Worksheets("Draußen").Cells(n + 1, 2) = Worksheets("Mitgliederliste").Cells(n, 2)
+    Worksheets("Bierkassenabrechnung").Cells(n + 1, 1) = Worksheets("Mitgliederliste").Cells(n, 1)
+    Worksheets("Bierkassenabrechnung").Cells(n + 1, 2) = Worksheets("Mitgliederliste").Cells(n, 2)
+    Worksheets("Gemeinsames Essen | Grillen").Cells(n + 2, 1) = Worksheets("Mitgliederliste").Cells(n, 1) & ", " & Worksheets("Mitgliederliste").Cells(n, 2)
+
+    End If
+
+Next n
+    
+With Worksheets("Gemeinsames Essen | Grillen").Range("B2:H2").Validation
+    .Delete
+
+    'replace "=A1:A6" with the range the data is in.
+    .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
+    Formula1:="='Gemeinsames Essen | Grillen'!$A4:$A" & gmaxanzahl + 3
+    .IgnoreBlank = True
+    .InCellDropdown = True
+    .InputTitle = ""
+    .ErrorTitle = ""
+    .InputMessage = ""
+    .ErrorMessage = ""
+    .ShowInput = True
+    .ShowError = True
+End With
+
+
+End Sub
+Private Function GetValue(pfad, datei, blatt, zelle)
+'** Daten aus geschlossener Arbeitsmappe auslesen
+
+'*** Dimensionierung der Variablen
+Dim arg As String
+
+'Sicherstellen, dass das datei vorhanden ist
+If Right(pfad, 1) <> "\" Then pfad = pfad & "\"
+If Dir(pfad & datei) = "" Then
+GetValue = "datei Not Found"
+Exit Function
+End If
+
+'** Das Argument erstellen
+arg = "'" & pfad & "[" & datei & "]" & blatt & "'!" & Range(zelle).Range("A1").Address(, , xlR1C1)
+
+'** Auslesen über Excel4Macro
+GetValue = ExecuteExcel4Macro(arg)
+
+End Function
+
+Sub letzte_abrechnung()
+'** Dimensionierung der Variablen
+Dim pfad As String, datei As String, blatt As String, bereich As Range, zelle As Object, pfad_datei As String
+Dim letzteAbrechnung As FileDialog
+Dim AnzahlAlt As Long
+Dim CountUp As Long
+
+gmaxanzahl = Worksheets("Mitgliederliste").UsedRange.Rows.Count - 1
+
+    '**Öffnet die FileDialog-Box
+    Set letzteAbrechnung = Application.FileDialog(msoFileDialogOpen)
+
+    With letzteAbrechnung
+        .Title = "Letzte Abrechnung auswählen"
+        .AllowMultiSelect = False
+        .Filters.Add "Arbeitsblätter (*.xlsm)", "*.xlsm"
+        .Show
+        pfad_datei = .SelectedItems(1)
+        si = pfad_datei
+    
+    '** Liefert den Dateinamen, der ausgewählten Datei
+        Dim i As Integer
+        i = Len(pfad_datei)
+        Do While Mid(pfad_datei, i, 1) <> "\"
+        i = i - 1
+        Loop
+        datei = Right(pfad_datei, Len(pfad_datei) - i)
+
+    '** Liefert den Dateipfad, der ausgewählten Datei
+        Dim j As Integer
+        j = Len(si)
+        Do While Mid(si, j, 1) <> "\"
+        j = j - 1
+        Loop
+        pfad = Left(si, j - 1)
+
+    End With
+    
+'** Angaben zur auszulesenden Zelle
+blatt = "Bierkassenabrechnung"
+
+Dim strLeer As String
+Dim temp As String
+Dim Counter As Long
+CountUp = 3
+
+While AnzahlAlt <> 2
+
+    temp = GetValue(pfad, datei, blatt, Cells(CountUp, 1).Address(False, False))
+
+    If temp = "0" Then
+        AnzahlAlt = AnzahlAlt + 1
+        
+    Else
+        AnzahlAlt = 0
+        
+    End If
+    
+    CountUp = CountUp + 1
+    
+Wend
+
+CountUp = CountUp - 2
+
+'** Alte Schulden zur jeweils richtigen Person übertragen
+For l = 4 To CountUp
+
+    strLeer = GetValue(pfad, datei, blatt, Cells(l, 1).Address(False, False))
+    
+    '** Leere Zeilen, und Gruppenüberschriften überspringen
+    If strLeer = "" Or strLeer = "Aktive" Or strLeer = "Probemitglieder" Or strLeer = "AD/AH/Inaktive" Then
+    '** NOTHING!
+    
+    Else
+        Count = 4
+        
+        '** Prüfen ob die Nachnamen übereinstimmen
+        While strLeer <> Worksheets("Bierkassenabrechnung").Cells(Count, 1) And Count < gmaxanzahl
+        
+            Count = Count + 1
+            
+        Wend
+            
+        '** Schulden kopieren
+        Worksheets("Bierkassenabrechnung").Cells(Count, 3) = GetValue(pfad, datei, blatt, Cells(l, 6).Address(False, False))
+        
+    End If
+
+Next l
+
+End Sub
+
+
+Sub abrechnung()
+
+Dim bereich As Range
+Dim summe As Integer
+gmaxanzahl = Worksheets("Mitgliederliste").UsedRange.Rows.Count - 1
+
+    
+    '** Bareinzahlungen übertragen von Startseite
+For i = 2 To gmaxanzahl
+    
+    If Worksheets("Mitgliederliste").Cells(i, 1) = "" Or Worksheets("Mitgliederliste").Cells(i, 1) = "Aktive" Or _
+        Worksheets("Mitgliederliste").Cells(i, 1) = "Probemitglieder" Or Worksheets("Mitgliederliste").Cells(i, 1) = "AD/AH/Inaktive" Then
+        
+    Else
+    
+        If Worksheets("Mitgliederliste").Cells(i, 3) <> "" Then
+        
+            Worksheets("Bierkassenabrechnung").Cells(i + 1, 4) = Worksheets("Mitgliederliste").Cells(i, 3)
+        
+        End If
+        
+        '** Überprüfen, ob ein Einkauf für Essen getätigt wurde
+        For j = 2 To Worksheets("Gemeinsames Essen | Grillen").UsedRange.Columns.Count
+        
+            '** Überprüfen, ob die Namen gleich sind und keine Leerzeile
+            If Worksheets("Gemeinsames Essen | Grillen").Cells(2, j) = Worksheets("Gemeinsames Essen | Grillen").Cells(i + 2, 1) And _
+                Worksheets("Gemeinsames Essen | Grillen").Cells(i + 2, 1) <> "" Then
+            
+                    '** Einkäufer bekommt Geld gutgeschrieben
+                    Worksheets("Bierkassenabrechnung").Cells(i + 1, 4) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 4) + Worksheets("Gemeinsames Essen | Grillen").Cells(3, j)
+                                    
+            End If
+        
+            '** Wenn bei in der Zeile i der Spalte j eine Zahl steht, ...
+            If Worksheets("Gemeinsames Essen | Grillen").Cells(i + 2, j) <> "" Then
+            
+                '** ... dann aufsummieren der gesamten Spalte
+                For k = 4 To gmaxanzahl
+                
+                    summe = summe + Worksheets("Gemeinsames Essen | Grillen").Cells(k, j)
+                
+                Next k
+            
+                'MsgBox Worksheets("Gemeinsames Essen | Grillen").Cells(i + 3, j)
+                
+                '** Einkaufswert geteilt durch die Summe aller beteiligten mal der Anzahl von i
+                Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) + _
+                ((Worksheets("Gemeinsames Essen | Grillen").Cells(3, j) / summe) * _
+                Worksheets("Gemeinsames Essen | Grillen").Cells(i + 2, j))
+                    
+                '** Summe wieder auf 0 setzen
+                summe = 0
+            
+            End If
+            
+        Next j
+        
+        For l = 3 To Worksheets("Verzehrliste").UsedRange.Columns.Count
+        
+            '** Abrechnung Liste: Draußen. Bis Spalte 6
+            If l <= 6 Then
+            
+                Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) + (Worksheets("Draußen").Cells(i + 2, l) * Worksheets("Draußen").Cells(2, l))
+        
+            End If
+            
+            '** Abrechnung Liste: Verzehrliste. Bis Spalte 7 mit Zeile 5, dann mit Zeile 6
+            If l <= 7 Then
+            
+                Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) + (Worksheets("Verzehrliste").Cells(i + 5, l) * Worksheets("Verzehrliste").Cells(5, l))
+                
+            Else
+            
+                Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 5) + (Worksheets("Verzehrliste").Cells(i + 5, l) * Worksheets("Verzehrliste").Cells(6, l))
+                
+            End If
+        
+        Next l
+        
+        '** Neue Schulden addieren
+        Worksheets("Bierkassenabrechnung").Cells(i + 1, 6) = Worksheets("Bierkassenabrechnung").Cells(i + 1, 3) - Worksheets("Bierkassenabrechnung").Cells(i + 1, 4) + Worksheets("Bierkassenabrechnung").Cells(i + 1, 5)
+    
+    End If
+
+Next i
+
+
+End Sub
